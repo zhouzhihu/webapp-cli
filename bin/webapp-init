@@ -1,0 +1,100 @@
+#!/usr/bin/env node
+
+/**
+ * Usage.
+ */
+var path = require('path')
+var download = require('download-git-repo')
+var program = require('commander')
+var chalk = require('chalk')
+var inquirer = require('inquirer')
+var os = require('os')
+var ora = require('ora')
+var uid = require('uid')
+var rm = require('rimraf').sync
+var exists = require('fs').existsSync
+var generate = require('../lib/generate')
+
+program
+  .usage('<template-name> [project-name]')
+  .option('-c, --clone', 'use git clone')
+
+/**
+ * Help.
+ */
+
+program.on('--help', function () {
+  console.log('  Examples:')
+  console.log()
+  console.log(chalk.gray('    # create a new project with an SPA template'))
+  console.log('    $ webapp init webpack my-project')
+  console.log()
+  console.log(chalk.gray('    # create a new project with an multi page template'))
+  console.log('    $ webapp init webpack-multi my-project')
+  console.log()
+})
+
+/**
+ * Help.
+ */
+
+function help () {
+  program.parse(process.argv)
+  if (program.args.length < 1) return program.help()
+}
+help()
+
+/**
+ * Padding.
+ */
+
+console.log()
+process.on('exit', function () {
+  console.log()
+})
+
+/**
+ * Settings.
+ */
+var template = program.args[0]
+var rawName = program.args[1]
+var inPlace = !rawName || rawName === '.'
+var name = inPlace ? path.relative('../', process.cwd()) : rawName
+var to = path.resolve(rawName || '.')
+var clone = program.clone || false
+
+if (exists(to)) {
+  inquirer.prompt({
+    type: 'confirm',
+    message: inPlace
+        ? 'Generate project in current directory?'
+        : 'Target directory exists. Continue?',
+    name: 'ok'
+  }).then(function(answers){
+    if (answers.ok) {
+      run(template)
+    }
+  })
+} else {
+  run(template)
+}
+
+function run(template){
+  console.log("template = " + template)
+  var template = "zhouzhihu/" + template
+  var tmp = os.tmpdir() + '/webapp-template-' + uid()
+  var spinner = ora('downloading template')
+  spinner.start()
+  download(template, tmp, { clone: clone }, function (err) {
+    spinner.stop()
+    process.on('exit', function () {
+      rm(tmp)
+    })
+    if (err) console.error('Failed to download repo ' + template + ': ' + err.message.trim())
+    generate(name, tmp, to, function (err) {
+      if (err) console.error(err)
+      console.log()
+      console.error('Generated "%s".', name)
+    })
+  })
+}
