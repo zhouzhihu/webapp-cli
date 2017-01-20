@@ -1,6 +1,6 @@
 {
   "name": "web-app-cli",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "A simple CLI for create webapp projects.",
   "preferGlobal": true,
   "bin": {
